@@ -59,7 +59,7 @@ export default function Home() {
         <p className={styles.sub}>
           Each chat is a building; sub-chats are small cottages beside it.
           Working builders stay on site, then walk home to the distant hut.
-          Drag with one finger, pinch to zoom.
+          Use Move / Rotate above the map for one-finger drag; pinch to zoom.
         </p>
         <div className={styles.metaRow}>
           <span className={styles.pill}>{village?.date ?? "…"}</span>

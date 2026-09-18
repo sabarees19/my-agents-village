@@ -1,7 +1,14 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { ContactShadows, Float, OrbitControls, Sky, Text } from "@react-three/drei";
+import {
+  Billboard,
+  ContactShadows,
+  Float,
+  OrbitControls,
+  Sky,
+  Text,
+} from "@react-three/drei";
 import {
   Suspense,
   useEffect,
@@ -159,19 +166,22 @@ function BuildingMesh({
           <meshStandardMaterial color={roofColor} />
         </mesh>
       )}
-      <Float speed={1.4} floatIntensity={0.15} rotationIntensity={0.05}>
-        <Text
-          position={[0, height + (building.stage === "roof" ? 1.1 : 0.85), 0]}
-          fontSize={building.kind === "subchat" ? 0.22 : 0.28}
-          color="#1a362a"
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.02}
-          outlineColor="#fffcf0"
-          maxWidth={2.4}
-        >
-          {building.label}
-        </Text>
+      <Float speed={1.4} floatIntensity={0.12} rotationIntensity={0}>
+        <Billboard follow lockX={false} lockY={false} lockZ={false}>
+          <Text
+            position={[0, height + (building.stage === "roof" ? 1.15 : 0.9), 0]}
+            fontSize={building.kind === "subchat" ? 0.28 : 0.36}
+            color="#fffef5"
+            anchorX="center"
+            anchorY="middle"
+            outlineWidth={0.045}
+            outlineColor="#102018"
+            maxWidth={3.2}
+            depthOffset={-2}
+          >
+            {building.label}
+          </Text>
+        </Billboard>
       </Float>
     </group>
   );
@@ -216,26 +226,28 @@ function BuilderHut({
         <boxGeometry args={[0.55, 0.9, 0.12]} />
         <meshStandardMaterial color="#4a3728" />
       </mesh>
-      <Text
-        position={[0, 2.85, 0]}
-        fontSize={0.32}
-        color="#1a362a"
-        anchorX="center"
-        outlineWidth={0.02}
-        outlineColor="#fffcf0"
-      >
-        Builders Hut
-      </Text>
-      <Text
-        position={[0, 2.45, 0]}
-        fontSize={0.22}
-        color="#2f4f3e"
-        anchorX="center"
-        outlineWidth={0.015}
-        outlineColor="#fffcf0"
-      >
-        {restingCount} resting
-      </Text>
+      <Billboard follow>
+        <Text
+          position={[0, 2.95, 0]}
+          fontSize={0.38}
+          color="#fffef5"
+          anchorX="center"
+          outlineWidth={0.045}
+          outlineColor="#102018"
+        >
+          Builders Hut
+        </Text>
+        <Text
+          position={[0, 2.5, 0]}
+          fontSize={0.26}
+          color="#e8fff0"
+          anchorX="center"
+          outlineWidth={0.03}
+          outlineColor="#102018"
+        >
+          {restingCount} resting
+        </Text>
+      </Billboard>
     </group>
   );
 }
@@ -419,17 +431,20 @@ function AgentFigure({
         )}
       </group>
       {(working || !insideHut) && (
-        <Text
-          position={[0, 1.55, 0]}
-          fontSize={0.16}
-          color="#1a362a"
-          anchorX="center"
-          outlineWidth={0.015}
-          outlineColor="#fffcf0"
-          maxWidth={1.8}
-        >
-          {agent.displayName || agent.title || agent.agentId.slice(0, 8)}
-        </Text>
+        <Billboard follow>
+          <Text
+            position={[0, 1.65, 0]}
+            fontSize={0.22}
+            color="#fffef5"
+            anchorX="center"
+            outlineWidth={0.035}
+            outlineColor="#102018"
+            maxWidth={2.2}
+            depthOffset={-2}
+          >
+            {agent.displayName || agent.title || agent.agentId.slice(0, 8)}
+          </Text>
+        </Billboard>
       )}
     </group>
   );
@@ -439,10 +454,12 @@ function VillageWorld({
   village,
   selectedKey,
   onSelect,
+  fingerMode,
 }: {
   village: VillageState;
   selectedKey: string | null;
   onSelect: (key: string | null) => void;
+  fingerMode: "move" | "rotate";
 }) {
   const controlsRef = useRef<OrbitControlsImpl>(null);
   const hutWorld = useMemo(() => {
@@ -463,6 +480,32 @@ function VillageWorld({
 
   const restingCount = village.agents.filter((a) => a.status !== "building").length;
   const ground = useMemo(() => villageGroundBounds(village), [village]);
+  const targetSeeded = useRef(false);
+
+  // Mutate live controls — never remount or re-pass `target` (that snaps the camera).
+  useEffect(() => {
+    const apply = () => {
+      const controls = controlsRef.current;
+      if (!controls) return false;
+      if (!targetSeeded.current) {
+        controls.target.set(ground.cx, 0.4, ground.cz);
+        controls.update();
+        targetSeeded.current = true;
+      }
+      controls.touches.ONE =
+        fingerMode === "rotate" ? TOUCH.ROTATE : TOUCH.PAN;
+      controls.mouseButtons.LEFT =
+        fingerMode === "rotate" ? MOUSE.ROTATE : MOUSE.PAN;
+      controls.mouseButtons.RIGHT =
+        fingerMode === "move" ? MOUSE.ROTATE : MOUSE.PAN;
+      return true;
+    };
+    if (apply()) return;
+    const id = window.setInterval(() => {
+      if (apply()) window.clearInterval(id);
+    }, 50);
+    return () => window.clearInterval(id);
+  }, [fingerMode, ground.cx, ground.cz]);
 
   return (
     <>
@@ -523,19 +566,18 @@ function VillageWorld({
 
       <FocusOnSelection focus={focusPoint} controlsRef={controlsRef} />
 
-      {/* Clash-style: one-finger pan, pinch zoom, locked tilt */}
+      {/* One-finger / left-drag follows Move|Rotate toggle; pinch still zooms */}
       <OrbitControls
         ref={controlsRef}
         makeDefault
-        enableRotate={false}
+        enableRotate
         enablePan
         enableZoom
         screenSpacePanning
         minDistance={3}
         maxDistance={Math.max(70, ground.size * 0.9)}
-        minPolarAngle={Math.PI / 3.05}
-        maxPolarAngle={Math.PI / 3.05}
-        target={[ground.cx, 0.4, ground.cz]}
+        minPolarAngle={Math.PI / 6}
+        maxPolarAngle={Math.PI / 2.15}
         touches={{
           ONE: TOUCH.PAN,
           TWO: TOUCH.DOLLY_PAN,
@@ -543,7 +585,7 @@ function VillageWorld({
         mouseButtons={{
           LEFT: MOUSE.PAN,
           MIDDLE: MOUSE.DOLLY,
-          RIGHT: MOUSE.PAN,
+          RIGHT: MOUSE.ROTATE,
         }}
       />
     </>
@@ -553,6 +595,7 @@ function VillageWorld({
 export function VillageScene3D({ village }: Props) {
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [fingerMode, setFingerMode] = useState<"move" | "rotate">("move");
 
   const selectedBuilding = useMemo(
     () => village.buildings.find((b) => b.key === selectedKey) ?? null,
@@ -608,140 +651,179 @@ export function VillageScene3D({ village }: Props) {
   const restingCount = village.agents.length - workingCount;
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.canvas}>
-        {isEmpty ? (
-          <p className={styles.empty}>
-            No buildings yet today — make a commit or start an agent
-          </p>
-        ) : (
-          <Canvas
-            shadows
-            camera={{ position: [8, 22, 28], fov: 40, near: 0.1, far: 220 }}
-            dpr={[1, 1.75]}
-            onCreated={({ gl }) => {
-              gl.shadowMap.type = PCFShadowMap;
-            }}
-          >
-            <Suspense fallback={null}>
-              <VillageWorld
-                village={village}
-                selectedKey={selectedKey}
-                onSelect={setSelectedKey}
-              />
-            </Suspense>
-          </Canvas>
-        )}
-      </div>
-
-      <aside className={styles.searchPanel}>
-        <label className={styles.searchLabel} htmlFor="village-search">
-          Search chats
-        </label>
-        <input
-          id="village-search"
-          className={styles.searchInput}
-          type="search"
-          placeholder="Type a chat name…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoComplete="off"
-        />
-        {query.trim() && (
-          <ul className={styles.searchList}>
-            {searchMatches.length === 0 ? (
-              <li className={styles.searchEmpty}>No matches</li>
-            ) : (
-              searchMatches.map((item) => (
-                <li key={item.key}>
-                  <button
-                    type="button"
-                    className={`${styles.searchItem} ${
-                      selectedKey === item.key ? styles.searchItemActive : ""
-                    }`}
-                    onClick={() => setSelectedKey(item.key)}
-                  >
-                    <span className={styles.searchItemLabel}>{item.label}</span>
-                    <span className={styles.searchItemKind}>{item.kind}</span>
-                  </button>
-                </li>
-              ))
-            )}
-          </ul>
-        )}
-      </aside>
-
-      <div className={styles.hud}>
-        <span>{workingCount} working</span>
-        <span>{restingCount} in hut</span>
-        <span>drag / pinch like CoC</span>
-      </div>
-
-      {(selectedBuilding || hutSelected) && (
-        <aside className={styles.panel} aria-live="polite">
-          <button
-            type="button"
-            className={styles.close}
-            onClick={() => setSelectedKey(null)}
-            aria-label="Close panel"
-          >
-            ×
-          </button>
-          <h2>{hutSelected ? "Builders' Hut" : selectedBuilding?.label}</h2>
-          <p className={styles.meta}>
-            {hutSelected
-              ? `${restingCount} resting agent${restingCount === 1 ? "" : "s"}`
-              : selectedBuilding?.kind === "subchat"
-                ? `Sub-chat beside ${selectedBuilding.parentKey?.replace(/^chat:/, "").slice(0, 8) ?? "parent"} · ${selectedBuilding.stage}`
-                : selectedBuilding?.kind === "chat"
-                  ? `Chat · ${selectedBuilding.repo ?? "agent"} · ${selectedBuilding.stage}`
-                  : `${selectedBuilding?.repo ? `${selectedBuilding.repo} · ` : ""}${selectedBuilding?.stage}`}
-          </p>
-
-          <p className={styles.sectionTitle}>
-            {hutSelected ? "Resting" : "Working here"}
-          </p>
-          {linkedAgents.length === 0 ? (
-            <p className={styles.meta}>
-              {hutSelected ? "Hut is empty" : "No builders on this plot"}
-            </p>
-          ) : (
-            <ul className={styles.list}>
-              {linkedAgents.map((agent) => (
-                <li key={agent.id}>
-                  <span style={{ color: agent.color }}>●</span>{" "}
-                  {agent.displayName || agent.agentId.slice(0, 8)}{" "}
-                  <span className={styles.meta}>
-                    ({agent.source}
-                    {agent.agentKind === "subagent" ? " subagent" : ""} ·{" "}
-                    {agent.status})
-                  </span>
-                  {agent.title ? ` — ${agent.title}` : ""}
-                </li>
-              ))}
+    <div className={styles.shell}>
+      <div className={styles.toolbar}>
+        <div className={styles.searchPanel}>
+          <label className={styles.searchLabel} htmlFor="village-search">
+            Search chats
+          </label>
+          <input
+            id="village-search"
+            className={styles.searchInput}
+            type="search"
+            placeholder="Type a chat name…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoComplete="off"
+          />
+          {query.trim() && (
+            <ul className={styles.searchList}>
+              {searchMatches.length === 0 ? (
+                <li className={styles.searchEmpty}>No matches</li>
+              ) : (
+                searchMatches.map((item) => (
+                  <li key={item.key}>
+                    <button
+                      type="button"
+                      className={`${styles.searchItem} ${
+                        selectedKey === item.key ? styles.searchItemActive : ""
+                      }`}
+                      onClick={() => setSelectedKey(item.key)}
+                    >
+                      <span className={styles.searchItemLabel}>{item.label}</span>
+                      <span className={styles.searchItemKind}>{item.kind}</span>
+                    </button>
+                  </li>
+                ))
+              )}
             </ul>
           )}
+        </div>
 
-          {!hutSelected &&
-            selectedBuilding?.kind === "chat" &&
-            (() => {
-              const kids = village.buildings.filter(
-                (b) => b.parentKey === selectedBuilding.key,
-              );
-              if (kids.length === 0) return null;
-              return (
-                <>
-                  <p className={styles.sectionTitle}>Sub-chats</p>
-                  <ul className={styles.list}>
-                    {kids.map((b) => (
-                      <li key={b.key}>{b.label}</li>
-                    ))}
-                  </ul>
-                </>
-              );
-            })()}
-        </aside>
-      )}
+        <div
+          className={styles.modeToggle}
+          role="group"
+          aria-label="One-finger drag mode"
+        >
+          <button
+            type="button"
+            className={`${styles.modeBtn} ${
+              fingerMode === "move" ? styles.modeBtnActive : ""
+            }`}
+            aria-pressed={fingerMode === "move"}
+            onClick={() => setFingerMode("move")}
+          >
+            Move
+          </button>
+          <button
+            type="button"
+            className={`${styles.modeBtn} ${
+              fingerMode === "rotate" ? styles.modeBtnActive : ""
+            }`}
+            aria-pressed={fingerMode === "rotate"}
+            onClick={() => setFingerMode("rotate")}
+          >
+            Rotate
+          </button>
+        </div>
+      </div>
+
+      <div className={styles.wrap}>
+        <div className={styles.canvas}>
+          {isEmpty ? (
+            <p className={styles.empty}>
+              No buildings yet today — make a commit or start an agent
+            </p>
+          ) : (
+            <Canvas
+              shadows
+              camera={{ position: [8, 22, 28], fov: 40, near: 0.1, far: 220 }}
+              dpr={[1, 1.75]}
+              onCreated={({ gl }) => {
+                gl.shadowMap.type = PCFShadowMap;
+                gl.domElement.addEventListener("contextmenu", (e) =>
+                  e.preventDefault(),
+                );
+              }}
+            >
+              <Suspense fallback={null}>
+                <VillageWorld
+                  village={village}
+                  selectedKey={selectedKey}
+                  onSelect={setSelectedKey}
+                  fingerMode={fingerMode}
+                />
+              </Suspense>
+            </Canvas>
+          )}
+        </div>
+
+        <div className={styles.hud}>
+          <span>{workingCount} working</span>
+          <span>{restingCount} in hut</span>
+          <span>
+            {fingerMode === "move"
+              ? "drag to move · pinch zoom"
+              : "drag to rotate · pinch zoom"}
+          </span>
+        </div>
+
+        {(selectedBuilding || hutSelected) && (
+          <aside className={styles.panel} aria-live="polite">
+            <button
+              type="button"
+              className={styles.close}
+              onClick={() => setSelectedKey(null)}
+              aria-label="Close panel"
+            >
+              ×
+            </button>
+            <h2>{hutSelected ? "Builders' Hut" : selectedBuilding?.label}</h2>
+            <p className={styles.meta}>
+              {hutSelected
+                ? `${restingCount} resting agent${restingCount === 1 ? "" : "s"}`
+                : selectedBuilding?.kind === "subchat"
+                  ? `Sub-chat beside ${selectedBuilding.parentKey?.replace(/^chat:/, "").slice(0, 8) ?? "parent"} · ${selectedBuilding.stage}`
+                  : selectedBuilding?.kind === "chat"
+                    ? `Chat · ${selectedBuilding.repo ?? "agent"} · ${selectedBuilding.stage}`
+                    : `${selectedBuilding?.repo ? `${selectedBuilding.repo} · ` : ""}${selectedBuilding?.stage}`}
+            </p>
+
+            <p className={styles.sectionTitle}>
+              {hutSelected ? "Resting" : "Working here"}
+            </p>
+            {linkedAgents.length === 0 ? (
+              <p className={styles.meta}>
+                {hutSelected ? "Hut is empty" : "No builders on this plot"}
+              </p>
+            ) : (
+              <ul className={styles.list}>
+                {linkedAgents.map((agent) => (
+                  <li key={agent.id}>
+                    <span style={{ color: agent.color }}>●</span>{" "}
+                    {agent.displayName || agent.agentId.slice(0, 8)}{" "}
+                    <span className={styles.meta}>
+                      ({agent.source}
+                      {agent.agentKind === "subagent" ? " subagent" : ""} ·{" "}
+                      {agent.status})
+                    </span>
+                    {agent.title ? ` — ${agent.title}` : ""}
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {!hutSelected &&
+              selectedBuilding?.kind === "chat" &&
+              (() => {
+                const kids = village.buildings.filter(
+                  (b) => b.parentKey === selectedBuilding.key,
+                );
+                if (kids.length === 0) return null;
+                return (
+                  <>
+                    <p className={styles.sectionTitle}>Sub-chats</p>
+                    <ul className={styles.list}>
+                      {kids.map((b) => (
+                        <li key={b.key}>{b.label}</li>
+                      ))}
+                    </ul>
+                  </>
+                );
+              })()}
+          </aside>
+        )}
+      </div>
     </div>
   );
 }
