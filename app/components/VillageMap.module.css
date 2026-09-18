@@ -1,0 +1,106 @@
+.map {
+  position: relative;
+  width: 100%;
+  height: min(72vh, 640px);
+  min-height: 420px;
+  border-radius: 18px;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.18),
+    0 24px 60px rgba(26, 54, 42, 0.28);
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(255, 255, 220, 0.22), transparent 45%),
+    radial-gradient(ellipse at 80% 90%, rgba(45, 90, 60, 0.35), transparent 40%),
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 27px,
+      rgba(34, 84, 51, 0.12) 27px,
+      rgba(34, 84, 51, 0.12) 28px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 27px,
+      rgba(34, 84, 51, 0.1) 27px,
+      rgba(34, 84, 51, 0.1) 28px
+    ),
+    linear-gradient(160deg, #6fbf73 0%, #3f8f4a 45%, #2f6b3a 100%);
+}
+
+.empty {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  text-align: center;
+  color: #f7fafc;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-body), sans-serif;
+  font-size: 1rem;
+  max-width: 28rem;
+  margin: auto;
+}
+
+.panel {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: min(320px, calc(100% - 24px));
+  max-height: calc(100% - 24px);
+  overflow: auto;
+  padding: 1rem 1.1rem;
+  border-radius: 14px;
+  background: rgba(255, 252, 240, 0.94);
+  color: #1a362a;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.18);
+  z-index: 8;
+}
+
+.panel h2 {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-display), serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.meta {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.sectionTitle {
+  margin: 0.85rem 0 0.35rem;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  opacity: 0.65;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.list li {
+  font-size: 0.85rem;
+  line-height: 1.35;
+}
+
+.close {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  border: none;
+  background: transparent;
+  font-size: 1.2rem;
+  cursor: pointer;
+  color: #1a362a;
+}

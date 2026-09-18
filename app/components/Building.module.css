@@ -1,0 +1,116 @@
+.plot {
+  position: absolute;
+  width: 72px;
+  transform: translate(-50%, -70%);
+  cursor: pointer;
+  z-index: 2;
+  border: none;
+  background: transparent;
+  padding: 0;
+  text-align: center;
+}
+
+.plot:focus-visible {
+  outline: 2px solid #2f855a;
+  outline-offset: 4px;
+  border-radius: 8px;
+}
+
+.selected .label {
+  background: rgba(26, 54, 42, 0.92);
+  color: #f0fff4;
+}
+
+.iso {
+  position: relative;
+  width: 64px;
+  height: 54px;
+  margin: 0 auto;
+}
+
+.base {
+  position: absolute;
+  left: 8px;
+  bottom: 4px;
+  width: 48px;
+  height: 18px;
+  background: #8b5a2b;
+  clip-path: polygon(10% 0, 90% 0, 100% 100%, 0 100%);
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.18);
+}
+
+.wall {
+  position: absolute;
+  left: 14px;
+  bottom: 16px;
+  width: 36px;
+  height: 22px;
+  background: linear-gradient(180deg, #e2e8f0 0%, #a0aec0 100%);
+  clip-path: polygon(8% 0, 92% 0, 100% 100%, 0 100%);
+}
+
+.scaffold {
+  position: absolute;
+  inset: 8px 10px 14px;
+  border: 2px dashed rgba(214, 158, 46, 0.85);
+  border-radius: 4px;
+  animation: dust 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.roof {
+  position: absolute;
+  left: 10px;
+  bottom: 34px;
+  width: 44px;
+  height: 18px;
+  background: #c53030;
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
+  filter: drop-shadow(0 2px 0 rgba(0, 0, 0, 0.15));
+}
+
+.progress {
+  position: absolute;
+  left: 12px;
+  bottom: 0;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: rgba(26, 54, 42, 0.25);
+  overflow: hidden;
+}
+
+.fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #48bb78, #276749);
+  transition: width 0.6s ease;
+}
+
+.label {
+  margin-top: 4px;
+  display: inline-block;
+  max-width: 90px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 252, 240, 0.88);
+  color: #1a362a;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@keyframes dust {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.9;
+    transform: translateY(-2px);
+  }
+}
