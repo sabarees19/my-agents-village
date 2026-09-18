@@ -1,13 +1,31 @@
-# My Agents
+# My Agents Village
 
-Local Clash-of-Clans-style village for **today’s work**.
+A local **Clash of Clans–style 3D village** for today’s AI agent work.
 
-- **Buildings** = features from today’s git commits (Blume codebase)
-- **Characters** = 3D action-figure builders (agents + smaller glowing subagents)
-- **Colors** = source (`cursor` / `claude` / `codex` / `other`) + subagent shade
-- **Auto Cursor** = today’s agent transcripts under `~/.cursor/projects/*/agent-transcripts` (including `subagents/`) show up automatically
+Each Cursor (or Claude / Codex) chat becomes a building on the map. Subagents appear as small cottages beside their parent. Colored builders walk the site while a turn is active, then head home to a distant hut when they’re done.
 
-Multiple sources can appear on the map at the same time. Drag to orbit, scroll to zoom.
+Built with Next.js, React Three Fiber, and drei.
+
+## What you see
+
+| On the map | Meaning |
+| --- | --- |
+| **Chat building** | A parent agent conversation from today |
+| **Cottage** | A subagent / sub-chat next to its parent |
+| **Builder** | Live agent; color = source (`cursor` / `claude` / `codex` / `other`) |
+| **Hut** | Idle / finished agents walk home here |
+| **WIP yard** | Manual events with no matching chat building |
+
+Labels prefer official Cursor chat titles (from the conversation search DB), with a sensible fallback.
+
+## Features
+
+- **Auto Cursor ingest** — scans today’s transcripts under `~/.cursor/projects/*/agent-transcripts` (including `subagents/`)
+- **Busy / done status** — parents stay “building” while the transcript is freshly active; subagents latch to done after they finish
+- **Agent-agnostic events** — Claude, Codex, or anything else can `POST /api/events`
+- **Touch map controls** — one-finger pan, pinch zoom (Clash-like orbit); desktop drag + scroll
+- **Search + focus** — find a chat and fly the camera to that building
+- **Live refresh** — village API polled every few seconds
 
 ## Run
 
@@ -18,14 +36,9 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-Git scan uses:
+## Village API
 
-```bash
-python3 ~/.claude/skills/today-git-commits/scripts/today_git_commits.py \
-  --json --root ~/Documents/blume/code-base
-```
-
-Override the repo root with `BLUME_CODEBASE_ROOT`.
+`GET /api/village` — today’s buildings + agents (JSON). Used by the 3D UI.
 
 ## Emit an agent event (any tool)
 
@@ -33,10 +46,10 @@ Agent-agnostic ingest: `POST /api/events`
 
 ```bash
 # Claude
-npm run emit -- --source claude --agent-id claude-1 --title "Auth fix" --building DEV-3356
+npm run emit -- --source claude --agent-id claude-1 --title "Auth fix"
 
 # Codex subagent
-npm run emit -- --source codex --agent-id explore-1 --kind subagent --parent codex-main --building DEV-3356
+npm run emit -- --source codex --agent-id explore-1 --kind subagent --parent codex-main
 
 # Cursor
 npm run emit -- --source cursor --agent-id cursor-1 --name "Main agent" --status building
@@ -57,7 +70,6 @@ curl -s http://localhost:3000/api/events \
     "agentId": "session-42",
     "displayName": "Claude",
     "status": "building",
-    "buildingKey": "DEV-3356",
     "title": "Returning session token"
   }'
 ```
@@ -73,12 +85,18 @@ curl -s http://localhost:3000/api/events \
 | `parentAgentId` | no | for subagents |
 | `displayName` | no | label on hover / panel |
 | `status` | no | `idle` \| `building` \| `done` (default `building`) |
-| `buildingKey` | no | e.g. `DEV-3356`; unmatched → WIP yard |
-| `title` | no | what they are building |
+| `buildingKey` | no | bind to a chat; unmatched working agents → WIP yard |
+| `title` | no | what they are building / chat label |
 | `startedAt` / `updatedAt` | no | ISO timestamps |
 
-Events for today live in `data/events/YYYY-MM-DD.jsonl`.
+Manual events for today live in `data/events/YYYY-MM-DD.jsonl`.
 
-## Village API
+## Stack
 
-`GET /api/village` — merges today’s buildings + agents (refreshes in the UI every ~20s).
+- Next.js (App Router) + React 19
+- Three.js via `@react-three/fiber` + `@react-three/drei`
+- TypeScript + Tailwind
+
+## Privacy
+
+Everything runs locally. Cursor transcripts are read from your machine; nothing is uploaded by this app.

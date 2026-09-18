@@ -1,7 +1,8 @@
 {
-  "name": "sabarees-agents",
+  "name": "my-agents-village",
   "version": "0.1.0",
   "private": true,
+  "description": "Clash-of-Clans-style 3D village for today’s AI agent chats — buildings, subagent cottages, and colored builders that walk home when done.",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
